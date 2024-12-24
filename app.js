@@ -25,7 +25,7 @@ app.use(
 
 app.use("/api", apiRoutes);
 app.get("/", (req, res) => {
-  res.send("<h1>DIGITIK</h1><p>Backend For Digitik</p>");
+  res.send("<h1>QUIS-KU/h1><p>Backend For Quisku/p>");
 });
 app.use(errorHandler);
 
