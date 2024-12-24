@@ -37,7 +37,7 @@ const createUser = async (req, res) => {
       profile_picture,
     } = req.body;
     const newUser = {
-      user_id: uuidv4(),
+      user_id: uid,
       username,
       email,
       password,
