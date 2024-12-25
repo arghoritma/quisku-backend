@@ -65,7 +65,7 @@ npm start
    - Global and category-specific rankings
    - Updated based on user performance
 
-## API Endpoints
+## API Endpoints /api
 
 ### Authentication Routes (`/auth`)
 
