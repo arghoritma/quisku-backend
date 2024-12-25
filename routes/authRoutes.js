@@ -18,16 +18,4 @@ router.post(
   authController.signup
 );
 
-// Login Route
-router.post(
-  "/login",
-  [
-    body("email").isEmail().withMessage("Email is invalid"),
-    body("password")
-      .isLength({ min: 6 })
-      .withMessage("Password must be at least 6 characters long"),
-  ],
-  authController.login
-);
-
 module.exports = router;

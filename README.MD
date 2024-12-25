@@ -1,399 +1,207 @@
-### Dokumentasi Penggunaan API Backend untuk Integrasi Frontend
+# QuisKU Backend API Documentation
 
-Dokumentasi ini menjelaskan bagaimana API backend dapat digunakan untuk berbagai operasi seperti mengelola event, pembayaran, dan sesi dalam sistem reservasi online. Semua request menggunakan format **JSON** dan response dari API juga akan berbentuk **JSON**.
+## Overview
 
----
+QuisKU is an educational quiz application backend built with Node.js, Express, PostgreSQL, and Firebase Authentication. It provides API endpoints for quiz generation, user management, scoring, and leaderboards.
 
-## **BASE URL**
+## Tech Stack
 
-```
-http://localhost:3000/api
-```
+- Node.js & Express
+- PostgreSQL with Knex.js
+- Firebase Authentication
+- Google Gemini AI
+- Express Validator
+- JWT Authentication
 
----
+## Prerequisites
 
-## **EVENTS**
+- Node.js v14+
+- PostgreSQL
+- Firebase Admin SDK credentials
+- Google Gemini AI API key
 
-API untuk mengelola events seperti menambah, mendapatkan, memperbarui, dan menghapus event.
+## Installation
 
-### **1. Mendapatkan Semua Events**
+# Clone repository
 
-**Endpoint**: `/events`  
-**Method**: `GET`
+git clone [repository-url]
 
-**Response**:
+# Install dependencies
 
-```json
-[
-  {
-    "id": 1,
-    "name": "Seminar AI",
-    "description": "Seminar tentang AI dan aplikasi di kehidupan sehari-hari",
-    "capacity": 100,
-    "date": "2024-09-20"
-  },
-  ...
-]
-```
+npm install
 
----
+# Set up environment variables
 
-### **2. Mendapatkan Event Berdasarkan ID**
+cp .env.example .env
 
-**Endpoint**: `/events/:id`  
-**Method**: `GET`
+# Start development server
 
-**Response**:
+npm run dev
 
-```json
+# Start production server
+
+npm start
+
+## Database Schema
+
+### Tables
+
+1. **users**
+
+   - Primary user information
+   - Tracks scores and XP
+
+2. **quizzes**
+
+   - Quiz content and metadata
+   - Supports multiple grades and subjects
+
+3. **user_quiz_scores**
+
+   - Records user performance
+   - Tracks completion time
+
+4. **leaderboard**
+   - Global and category-specific rankings
+   - Updated based on user performance
+
+## API Endpoints
+
+### Authentication Routes (`/auth`)
+
+- `POST /auth/signup` - Register new user
+  - Required fields: username, email, password, full_name
+
+### User Routes (`/users`)
+
+- `GET /users` - Get all users
+- `GET /users/:id` - Get user by ID
+- `POST /users` - Create user
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
+
+### Quiz Routes (`/quizz`)
+
+- `POST /quizz/generate` - Generate new quiz
+- `GET /quizz/:quizId` - Get quiz by ID
+- `GET /quizz` - Get filtered quizzes
+- `GET /quizz/user/quizzes` - Get user's quizzes
+
+### Score Routes (`/scores`)
+
+- `POST /scores` - Save quiz score
+- `GET /scores/user/:user_id` - Get user scores
+- `GET /scores/leaderboard` - Get global leaderboard
+- `GET /scores/leaderboard/:category` - Get category leaderboard
+- `GET /scores/stats/:user_id` - Get user statistics
+
+### Leaderboard Routes (`/leaderboard`)
+
+- `GET /leaderboard` - Get global leaderboard
+- `GET /leaderboard/subject/:subject` - Get subject leaderboard
+- `GET /leaderboard/grade/:grade` - Get grade leaderboard
+
+### System Routes
+
+- `GET /status` - Check API status
+- `GET /test-firebase` - Test Firebase connection
+- `GET /test-database` - Test database connection
+- `GET /test-gemini` - Test Gemini AI connection
+- `GET /test-auth` - Test authentication
+
+## Authentication
+
+The API uses Firebase Authentication. All protected routes require a valid Firebase ID token in the Authorization header:
+
+Authorization: Bearer [firebase-id-token]
+
+## Data Models
+
+### User Model
+
 {
-  "id": 1,
-  "name": "Seminar AI",
-  "description": "Seminar tentang AI dan aplikasi di kehidupan sehari-hari",
-  "capacity": 100,
-  "date": "2024-09-20"
+user_id: string,
+username: string,
+email: string,
+password: string,
+full_name: string,
+phone: string,
+profile_picture: string,
+total_score: number,
+total_xp: number,
+created_at: timestamp,
+updated_at: timestamp
 }
-```
 
----
+### Quiz Model
 
-### **3. Menambah Event**
-
-**Endpoint**: `/events/add`  
-**Method**: `POST`
-
-**Request**:
-
-```json
 {
-  "name": "Seminar AI",
-  "description": "Seminar tentang AI dan aplikasi di kehidupan sehari-hari",
-  "capacity": 100,
-  "date": "2024-09-20"
+quiz_id: UUID,
+grade: enum,
+subject: enum,
+questions: JSONB,
+created_at: timestamp,
+created_by: UUID
 }
-```
 
-**Response**:
+### Score Model
 
-```json
 {
-  "message": "Event added successfully",
-  "eventId": 1
+score_id: UUID,
+user_id: UUID,
+quiz_id: UUID,
+score: number,
+xp_earned: number,
+completed_at: timestamp
 }
-```
 
----
+### Leaderboard Model
 
-### **4. Memperbarui Event**
-
-**Endpoint**: `/events/:id`  
-**Method**: `PUT`
-
-**Request**:
-
-```json
 {
-  "name": "Seminar AI",
-  "description": "Seminar AI dan implementasi teknologi",
-  "capacity": 150,
-  "date": "2024-10-01"
+leaderboard_id: UUID,
+user_id: UUID,
+total_score: number,
+total_xp: number,
+rank: number,
+updated_at: timestamp
 }
-```
 
-**Response**:
+## Workflow
 
-```json
-{
-  "message": "Event updated successfully"
-}
-```
+1. User registration/login
+2. Access dashboard with valid token
+3. Generate/take quizzes
+4. Submit answers and receive scores
+5. Update leaderboard rankings
+6. View statistics and progress
 
----
+## Error Handling
 
-### **5. Menghapus Event**
+The API returns standard HTTP status codes:
 
-**Endpoint**: `/events/:id`  
-**Method**: `DELETE`
+- 200: Success
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 500: Internal Server Error
 
-**Response**:
+## Development
 
-```json
-{
-  "message": "Event deleted successfully"
-}
-```
+# Run in development mode
 
----
+npm run dev
 
-## **SESSIONS**
+# Run in production mode
 
-API untuk mengelola sesi dalam event seperti menambah, memperbarui, dan menghapus sesi.
+npm start
 
-### **1. Mendapatkan Semua Sesi dalam Event**
+## Environment Variables
 
-**Endpoint**: `/sessions/by-event/:eventId`  
-**Method**: `GET`
-
-**Response**:
-
-```json
-[
-  {
-    "id": 1,
-    "event_id": 1,
-    "name": "Sesi Pembukaan",
-    "start_time": "09:00",
-    "end_time": "10:00"
-  },
-  ...
-]
-```
-
----
-
-### **2. Menambah Sesi**
-
-**Endpoint**: `/sessions/add`  
-**Method**: `POST`
-
-**Request**:
-
-```json
-{
-  "event_id": 1,
-  "name": "Sesi Materi AI",
-  "start_time": "11:00",
-  "end_time": "12:00"
-}
-```
-
-**Response**:
-
-```json
-{
-  "message": "Session added successfully",
-  "sessionId": 1
-}
-```
-
----
-
-### **3. Memperbarui Sesi**
-
-**Endpoint**: `/sessions/:id`  
-**Method**: `PUT`
-
-**Request**:
-
-```json
-{
-  "name": "Sesi Materi AI Lanjutan",
-  "start_time": "11:30",
-  "end_time": "12:30"
-}
-```
-
-**Response**:
-
-```json
-{
-  "message": "Session updated successfully"
-}
-```
-
----
-
-### **4. Menghapus Sesi**
-
-**Endpoint**: `/sessions/:id`  
-**Method**: `DELETE`
-
-**Response**:
-
-```json
-{
-  "message": "Session deleted successfully"
-}
-```
-
----
-
-## **PAYMENTS**
-
-API untuk mengelola pembayaran, termasuk integrasi dengan Midtrans.
-
-### **1. Menambah Payment**
-
-**Endpoint**: `/payments/add`  
-**Method**: `POST`
-
-**Request**:
-
-```json
-{
-  "reservationId": 1,
-  "amount": 100000,
-  "status": "pending",
-  "paidAt": "2024-09-01T10:00:00Z"
-}
-```
-
-**Response**:
-
-```json
-{
-  "message": "Payment added successfully",
-  "paymentId": 1
-}
-```
-
----
-
-### **2. Mendapatkan Semua Payments**
-
-**Endpoint**: `/payments`  
-**Method**: `GET`
-
-**Response**:
-
-```json
-[
-  {
-    "id": 1,
-    "reservation_id": 1,
-    "amount": 100000,
-    "status": "paid",
-    "paid_at": "2024-09-01T10:00:00Z"
-  },
-  ...
-]
-```
-
----
-
-### **3. Mendapatkan Payment Berdasarkan ID**
-
-**Endpoint**: `/payments/:id`  
-**Method**: `GET`
-
-**Response**:
-
-```json
-{
-  "id": 1,
-  "reservation_id": 1,
-  "amount": 100000,
-  "status": "paid",
-  "paid_at": "2024-09-01T10:00:00Z"
-}
-```
-
----
-
-### **4. Memperbarui Payment**
-
-**Endpoint**: `/payments/:id`  
-**Method**: `PUT`
-
-**Request**:
-
-```json
-{
-  "reservationId": 1,
-  "amount": 120000,
-  "status": "paid",
-  "paidAt": "2024-09-01T12:00:00Z"
-}
-```
-
-**Response**:
-
-```json
-{
-  "message": "Payment updated successfully"
-}
-```
-
----
-
-### **5. Menghapus Payment**
-
-**Endpoint**: `/payments/:id`  
-**Method**: `DELETE`
-
-**Response**:
-
-```json
-{
-  "message": "Payment deleted successfully"
-}
-```
-
----
-
-### **6. Membuat Transaksi Midtrans (Snap)**
-
-**Endpoint**: `/payments/snap`  
-**Method**: `POST`
-
-**Request**:
-
-```json
-{
-  "reservationId": 1,
-  "amount": 150000,
-  "customerDetails": {
-    "first_name": "Budi",
-    "last_name": "Pratama",
-    "email": "budi.pra@example.com",
-    "phone": "08111222333"
-  }
-}
-```
-
-**Response**:
-
-```json
-{
-  "message": "Payment initiated successfully",
-  "snapToken": "XXXXXXXXXXXXXXXX"
-}
-```
-
----
-
-### **FRONTEND INTEGRATION EXAMPLE**
-
-Untuk integrasi di frontend dengan menggunakan token Midtrans, Anda bisa menggunakan JavaScript seperti ini:
-
-```javascript
-fetch("http://localhost:3000/api/payments/snap", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    reservationId: 1,
-    amount: 150000,
-    customerDetails: {
-      first_name: "Budi",
-      last_name: "Pratama",
-      email: "budi.pra@example.com",
-      phone: "08111222333",
-    },
-  }),
-})
-  .then((response) => response.json())
-  .then((data) => {
-    snap.pay(data.snapToken); // Memanggil Snap.js dengan token yang diterima
-  });
-```
-
-### NOTE:
-
-- **Error Handling:** Pastikan untuk memeriksa status HTTP dan menangani error di sisi frontend.
-- **Authorization:** Jika API Anda memiliki otorisasi (misalnya JWT), jangan lupa untuk menyertakan header `Authorization` dengan token.
-
----
-
-Dengan dokumentasi ini, alur integrasi antara frontend dan backend akan lebih mudah dan Anda dapat fokus pada pengembangan frontend tanpa harus bolak-balik melihat kode backend.
+PORT=3000
+DB_HOST=localhost
+DB_USER=postgres
+DB_PASS=your_password
+DB_NAME=quisku
+FIREBASE_ADMIN_SDK=path/to/credentials.json
+GEMINI_API_KEY=your_api_key

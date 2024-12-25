@@ -6,7 +6,10 @@ const getAllUsers = async (req, res) => {
     const users = await db("users").select("*");
     res.status(200).json(users);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+      code: "UNKNOWN_ERROR",
+    });
   }
 };
 
@@ -16,12 +19,18 @@ const getUserById = async (req, res) => {
     const user = await db("users").where("user_id", id).first();
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+        code: "USER_NOT_FOUND",
+      });
     }
 
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+      code: "UNKNOWN_ERROR",
+    });
   }
 };
 
@@ -51,9 +60,16 @@ const createUser = async (req, res) => {
     };
 
     await db("users").insert(newUser);
-    res.status(201).json(newUser);
+    res.status(201).json({
+      message: "User created successfully",
+      code: "USER_CREATED",
+      data: newUser,
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+      code: "UNKNOWN_ERROR",
+    });
   }
 };
 
@@ -69,12 +85,22 @@ const updateUser = async (req, res) => {
       .returning("*");
 
     if (!updatedUser.length) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+        code: "USER_NOT_FOUND",
+      });
     }
 
-    res.status(200).json(updatedUser[0]);
+    res.status(200).json({
+      message: "User updated successfully",
+      code: "USER_UPDATED",
+      data: updatedUser[0],
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+      code: "UNKNOWN_ERROR",
+    });
   }
 };
 
@@ -84,12 +110,21 @@ const deleteUser = async (req, res) => {
     const deleted = await db("users").where("user_id", id).del().returning("*");
 
     if (!deleted.length) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        message: "User not found",
+        code: "USER_NOT_FOUND",
+      });
     }
 
-    res.status(200).json({ message: "User deleted successfully" });
+    res.status(200).json({
+      message: "User deleted successfully",
+      code: "USER_DELETED",
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+      code: "UNKNOWN_ERROR",
+    });
   }
 };
 
