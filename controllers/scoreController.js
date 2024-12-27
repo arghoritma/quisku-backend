@@ -1,23 +1,21 @@
-const db = require("../services/db");
+const { turso } = require("../configs/tursoDatabase");
+const { v4: uuidv4 } = require("uuid");
 
 const saveQuizScore = async (req, res) => {
   try {
     const { quiz_id, score, xp_earned } = req.body;
     const user_id = req.uid;
+    const score_id = uuidv4();
 
-    const [savedScore] = await db("user_quiz_scores")
-      .insert({
-        user_id,
-        quiz_id,
-        score,
-        xp_earned,
-      })
-      .returning("*");
+    await turso.execute({
+      sql: "INSERT INTO user_quiz_scores (score_id, user_id, quiz_id, score, xp_earned) VALUES (?, ?, ?, ?, ?)",
+      args: [score_id, user_id, quiz_id, score, xp_earned],
+    });
 
     res.json({
       message: "Quiz score saved successfully",
       code: "QUIZ_SCORE_SAVE_SUCCESS",
-      data: savedScore,
+      data: { score_id, user_id, quiz_id, score, xp_earned },
     });
   } catch (error) {
     res.status(500).json({
@@ -31,9 +29,10 @@ const getUserScores = async (req, res) => {
   try {
     const user_id = req.uid;
 
-    const scores = await db("user_quiz_scores")
-      .where({ user_id })
-      .orderBy("completed_at", "desc");
+    const { rows: scores } = await turso.execute({
+      sql: "SELECT * FROM user_quiz_scores WHERE user_id = ? ORDER BY completed_at DESC",
+      args: [user_id],
+    });
 
     res.json({
       message: "User scores retrieved successfully",
@@ -50,13 +49,9 @@ const getUserScores = async (req, res) => {
 
 const getGlobalLeaderboard = async (req, res) => {
   try {
-    const leaderboard = await db("user_quiz_scores")
-      .select("user_id")
-      .sum("score as total_score")
-      .sum("xp_earned as total_xp")
-      .groupBy("user_id")
-      .orderBy("total_score", "desc")
-      .limit(10);
+    const { rows: leaderboard } = await turso.execute({
+      sql: "SELECT user_id, SUM(score) as total_score, SUM(xp_earned) as total_xp FROM user_quiz_scores GROUP BY user_id ORDER BY total_score DESC LIMIT 10",
+    });
 
     res.json({
       message: "Global leaderboard retrieved successfully",
@@ -75,19 +70,24 @@ const getCategoryLeaderboard = async (req, res) => {
   try {
     const { grade, subject } = req.params;
 
-    const leaderboard = await db("user_quiz_scores")
-      .join("quizzes", "user_quiz_scores.quiz_id", "quizzes.quiz_id")
-      .join("users", "user_quiz_scores.user_id", "users.user_id")
-      .where({
-        "quizzes.grade": grade,
-        "quizzes.subject": subject,
-      })
-      .select("users.user_id", "users.username", "users.profile_picture")
-      .sum("user_quiz_scores.score as total_score")
-      .sum("user_quiz_scores.xp_earned as total_xp")
-      .groupBy("users.user_id", "users.username", "users.profile_picture")
-      .orderBy("total_score", "desc")
-      .limit(10);
+    const { rows: leaderboard } = await turso.execute({
+      sql: `
+        SELECT 
+          users.user_id, 
+          users.username, 
+          users.profile_picture,
+          SUM(user_quiz_scores.score) as total_score,
+          SUM(user_quiz_scores.xp_earned) as total_xp
+        FROM user_quiz_scores
+        JOIN quizzes ON user_quiz_scores.quiz_id = quizzes.quiz_id
+        JOIN users ON user_quiz_scores.user_id = users.user_id
+        WHERE quizzes.grade = ? AND quizzes.subject = ?
+        GROUP BY users.user_id, users.username, users.profile_picture
+        ORDER BY total_score DESC
+        LIMIT 10
+      `,
+      args: [grade, subject],
+    });
 
     res.json({
       message: "Category leaderboard retrieved successfully",
@@ -106,14 +106,19 @@ const getUserStats = async (req, res) => {
   try {
     const user_id = req.uid;
 
-    const stats = await db("user_quiz_scores")
-      .where({ user_id })
-      .select(
-        db.raw("SUM(score) as total_score"),
-        db.raw("SUM(xp_earned) as total_xp"),
-        db.raw("COUNT(*) as quizzes_taken")
-      )
-      .first();
+    const {
+      rows: [stats],
+    } = await turso.execute({
+      sql: `
+        SELECT 
+          SUM(score) as total_score,
+          SUM(xp_earned) as total_xp,
+          COUNT(*) as quizzes_taken
+        FROM user_quiz_scores
+        WHERE user_id = ?
+      `,
+      args: [user_id],
+    });
 
     res.json({
       message: "User stats retrieved successfully",

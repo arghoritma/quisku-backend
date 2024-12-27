@@ -1,6 +1,7 @@
 const { model } = require("../configs/geminiConfigs");
-const db = require("../services/db");
+const { turso } = require("../configs/tursoDatabase");
 const { cleanJsonString, convertJSON } = require("../utils/helpers");
+const { v4: uuidv4 } = require("uuid");
 
 const quizzController = {
   // Generate quiz using Gemini AI
@@ -26,14 +27,19 @@ const quizzController = {
 
       console.log(questions, Questions);
       // Save quiz to database
-      const [quiz] = await db("quizzes")
-        .insert({
-          grade,
-          subject,
-          questions: JSON.stringify(Questions),
-          created_by: userId,
-        })
-        .returning("*");
+      const quizId = uuidv4();
+      await turso.execute({
+        sql: "INSERT INTO quizzes (quiz_id, grade, subject, questions, created_by) VALUES (?, ?, ?, ?, ?)",
+        args: [quizId, grade, subject, JSON.stringify(Questions), userId],
+      });
+
+      const quiz = {
+        quiz_id: quizId,
+        grade,
+        subject,
+        questions: Questions,
+        created_by: userId,
+      };
 
       res.json({
         message: "Quiz generated successfully",
@@ -53,9 +59,12 @@ const quizzController = {
     try {
       const { quizId } = req.params;
 
-      const quiz = await db("quizzes").where({ quiz_id: quizId }).first();
+      const result = await turso.execute({
+        sql: "SELECT * FROM quizzes WHERE quiz_id = ?",
+        args: [quizId],
+      });
 
-      if (!quiz) {
+      if (!result.rows[0]) {
         return res.status(404).json({
           message: "Quiz not found",
           code: "QUIZ_NOT_FOUND",
@@ -65,7 +74,7 @@ const quizzController = {
       res.json({
         message: "Quiz retrieved successfully",
         code: "QUIZ_RETRIEVAL_SUCCESS",
-        data: quiz,
+        data: result.rows[0],
       });
     } catch (error) {
       res.status(500).json({
@@ -80,17 +89,33 @@ const quizzController = {
     try {
       const { grade, subject } = req.query;
 
-      const query = db("quizzes");
+      let sql = "SELECT * FROM quizzes";
+      const args = [];
+      const conditions = [];
 
-      if (grade) query.where({ grade });
-      if (subject) query.where({ subject });
+      if (grade) {
+        conditions.push("grade = ?");
+        args.push(grade);
+      }
+      if (subject) {
+        conditions.push("subject = ?");
+        args.push(subject);
+      }
 
-      const quizzes = await query.orderBy("created_at", "desc");
+      if (conditions.length > 0) {
+        sql += " WHERE " + conditions.join(" AND ");
+      }
+      sql += " ORDER BY created_at DESC";
+
+      const result = await turso.execute({
+        sql,
+        args,
+      });
 
       res.json({
         message: "Quizzes retrieved successfully",
         code: "QUIZZES_RETRIEVAL_SUCCESS",
-        data: quizzes,
+        data: result.rows,
       });
     } catch (error) {
       res.status(500).json({
@@ -105,14 +130,15 @@ const quizzController = {
     try {
       const userId = req.user.uid;
 
-      const quizzes = await db("quizzes")
-        .where({ created_by: userId })
-        .orderBy("created_at", "desc");
+      const result = await turso.execute({
+        sql: "SELECT * FROM quizzes WHERE created_by = ? ORDER BY created_at DESC",
+        args: [userId],
+      });
 
       res.json({
         message: "User quizzes retrieved successfully",
         code: "USER_QUIZZES_RETRIEVAL_SUCCESS",
-        data: quizzes,
+        data: result.rows,
       });
     } catch (error) {
       res.status(500).json({

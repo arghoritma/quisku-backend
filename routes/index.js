@@ -7,7 +7,7 @@ const scoreRoutes = require("./scoreRoutes");
 const leaderboardRoutes = require("./leaderboardRoutes");
 const authMiddleware = require("../middlewares/authMiddleware");
 const { auth } = require("../configs/firebaseAdminConfig");
-const db = require("../services/db");
+const { turso } = require("../configs/tursoDatabase");
 const { model } = require("../configs/geminiConfigs");
 
 router.use("/auth", authRoutes);
@@ -59,10 +59,13 @@ router.post("/get-custom-token", async (req, res) => {
 
 router.get("/test-database", async (req, res) => {
   try {
-    await db.raw("SELECT 1");
+    const tables = await turso.execute(
+      "SELECT name FROM sqlite_master WHERE type='table'"
+    );
     res.json({
       message: "Database connection successful",
-      database: process.env.DB_NAME,
+      tables: tables,
+      database: process.env.TURSO_DATABASE_URL,
     });
   } catch (error) {
     res

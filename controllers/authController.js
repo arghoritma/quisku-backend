@@ -1,8 +1,9 @@
 const { validationResult } = require("express-validator");
-const db = require("../services/db");
+const { turso } = require("../configs/tursoDatabase");
 require("dotenv").config();
 const { formatPhoneNumber } = require("../utils/helpers");
 const { auth } = require("../configs/firebaseAdminConfig");
+const { v4: uuidv4 } = require("uuid");
 
 const signup = async (req, res) => {
   const errors = validationResult(req);
@@ -15,13 +16,21 @@ const signup = async (req, res) => {
   try {
     const formattedPhone = formatPhoneNumber(phone);
 
-    // Check if email or phone exists
-    const existingUser = await db("users")
-      .where({ email })
-      .orWhere({ phone: formattedPhone })
-      .first();
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long",
+        code: "PASSWORD_TOO_SHORT",
+      });
+    }
 
-    if (existingUser) {
+    // Check if email or phone exists
+    const existingUser = await turso.execute({
+      sql: "SELECT * FROM users WHERE email = ? OR phone = ?",
+      args: [email, formattedPhone],
+    });
+
+    if (existingUser.rows.length > 0) {
       return res.status(400).json({
         message: "Email or phone number already in use",
         code: "DUPLICATE_ENTRY",
@@ -36,23 +45,22 @@ const signup = async (req, res) => {
         email,
         password,
         displayName: full_name,
-        phoneNumber: "+" + formattedPhone,
+        phoneNumber: formattedPhone.startsWith("+")
+          ? formattedPhone
+          : "+" + formattedPhone,
       });
 
       // Insert new user to database
-      await db("users").insert({
-        user_id: createdFirebaseUser.uid,
-        username,
-        email,
-        password: password,
-        full_name,
-        phone: formattedPhone,
+      const userId = createdFirebaseUser.uid || uuidv4();
+      await turso.execute({
+        sql: "INSERT INTO users (user_id, username, email, password, full_name, phone) VALUES (?, ?, ?, ?, ?, ?)",
+        args: [userId, username, email, password, full_name, formattedPhone],
       });
 
       res.status(201).json({
         message: "User registered successfully",
         code: "REGISTRATION_SUCCESS",
-        uid: createdFirebaseUser.uid,
+        uid: userId,
       });
     } catch (innerError) {
       // If database insertion fails, delete Firebase user
@@ -67,9 +75,10 @@ const signup = async (req, res) => {
       // If there's a database record, delete it
       try {
         if (createdFirebaseUser) {
-          await db("users")
-            .where({ user_id: createdFirebaseUser.uid })
-            .delete();
+          await turso.execute({
+            sql: "DELETE FROM users WHERE user_id = ?",
+            args: [createdFirebaseUser.uid],
+          });
         }
       } catch (dbDeleteError) {
         console.error("Error deleting database record:", dbDeleteError);
@@ -78,9 +87,12 @@ const signup = async (req, res) => {
       throw innerError;
     }
   } catch (err) {
+    const errorCode = err.code || "UNKNOWN_ERROR";
+    const errorMessage = err.message || "An unknown error occurred";
+
     res.status(500).json({
-      error: err.message,
-      code: "UNKNOWN_ERROR",
+      message: errorMessage,
+      code: errorCode,
     });
   }
 };

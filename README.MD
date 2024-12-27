@@ -67,10 +67,30 @@ npm start
 
 ## API Endpoints /api
 
+### Main Application (`app.js`)
+
+- Configures Express application
+- Sets up CORS with allowed origins
+- Mounts all API routes under `/api`
+- Implements global error handling
+
+### Root Routes (`/routes/index.js`)
+
+- Mounts all sub-routes
+- Provides system test endpoints:
+  - `GET /status` - API health check
+  - `GET /test-firebase` - Firebase connection test
+  - `GET /test-database` - Database connection test
+  - `GET /test-gemini` - Gemini AI connection test
+  - `GET /test-auth` - Authentication test
+  - `POST /get-custom-token` - Generate Firebase custom token
+
 ### Authentication Routes (`/auth`)
 
 - `POST /auth/signup` - Register new user
   - Required fields: username, email, password, full_name
+  - Validates input using express-validator
+  - Returns registration success with user ID
 
 ### User Routes (`/users`)
 
@@ -82,7 +102,7 @@ npm start
 
 ### Quiz Routes (`/quizz`)
 
-- `POST /quizz/generate` - Generate new quiz
+- `POST /quizz/generate` - Generate new quiz using Gemini AI
 - `GET /quizz/:quizId` - Get quiz by ID
 - `GET /quizz` - Get filtered quizzes
 - `GET /quizz/user/quizzes` - Get user's quizzes
@@ -97,17 +117,9 @@ npm start
 
 ### Leaderboard Routes (`/leaderboard`)
 
-- `GET /leaderboard` - Get global leaderboard
-- `GET /leaderboard/subject/:subject` - Get subject leaderboard
-- `GET /leaderboard/grade/:grade` - Get grade leaderboard
-
-### System Routes
-
-- `GET /status` - Check API status
-- `GET /test-firebase` - Test Firebase connection
-- `GET /test-database` - Test database connection
-- `GET /test-gemini` - Test Gemini AI connection
-- `GET /test-auth` - Test authentication
+- `GET /leaderboard` - Get global leaderboard with user details
+- `GET /leaderboard/subject/:subject` - Get subject-specific leaderboard
+- `GET /leaderboard/grade/:grade` - Get grade-specific leaderboard
 
 ## Authentication
 
