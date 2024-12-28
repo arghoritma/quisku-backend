@@ -1,4 +1,4 @@
-const { model } = require("../configs/geminiConfigs");
+const { generateContent } = require("../configs/geminiConfigs");
 const { turso } = require("../configs/tursoDatabase");
 const { cleanJsonString, convertJSON } = require("../utils/helpers");
 const { v4: uuidv4 } = require("uuid");
@@ -19,8 +19,16 @@ const quizzController = {
                       - jangan tambahkan komentar atau penjelasan lainnya
                       - jawaban harus plaintext berupa format JSON yang valid`;
 
-      const result = await model.generateContent(prompt);
-      const questions = result.response.text();
+      const result = await generateContent(prompt);
+      if (
+        !result ||
+        !result.candidates ||
+        !result.candidates[0]?.content?.parts?.[0]?.text
+      ) {
+        throw new Error("Failed to generate quiz content");
+      }
+
+      const questions = result.candidates[0].content.parts[0].text;
       const reformat = cleanJsonString(questions);
       const Questions = convertJSON(reformat);
       console.log(questions);
@@ -48,8 +56,8 @@ const quizzController = {
       });
     } catch (error) {
       res.status(500).json({
-        error: error.message,
-        code: "UNKNOWN_ERROR",
+        error: error.message || "Failed to generate quiz",
+        code: "GEMINI_AI_ERROR",
       });
     }
   },

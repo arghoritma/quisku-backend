@@ -8,7 +8,7 @@ const leaderboardRoutes = require("./leaderboardRoutes");
 const authMiddleware = require("../middlewares/authMiddleware");
 const { auth } = require("../configs/firebaseAdminConfig");
 const { turso } = require("../configs/tursoDatabase");
-const { model } = require("../configs/geminiConfigs");
+const { generateContent } = require("../configs/geminiConfigs");
 
 router.use("/auth", authRoutes);
 router.use("/users", authMiddleware, userRoutes);
@@ -77,13 +77,11 @@ router.get("/test-database", async (req, res) => {
 router.get("/test-gemini", async (req, res) => {
   try {
     const prompt = "Assalamualaykum.";
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const result = await generateContent(prompt);
 
     res.json({
       message: "Gemini AI connection successful",
-      response: text,
+      response: result.candidates[0].content.parts[0].text,
     });
   } catch (error) {
     res
@@ -91,7 +89,6 @@ router.get("/test-gemini", async (req, res) => {
       .json({ error: "Gemini AI connection failed", message: error.message });
   }
 });
-
 router.get("/test-auth", authMiddleware, (req, res) => {
   res.json({
     message: "Authentication successful",
