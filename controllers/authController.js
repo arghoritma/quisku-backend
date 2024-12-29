@@ -97,6 +97,56 @@ const signup = async (req, res) => {
   }
 };
 
+const updateProfilePicture = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { profile_picture_url } = req.body;
+  const user_id = req.uid;
+
+  try {
+    // Update profile picture URL in Firebase
+    await auth.updateUser(user_id, {
+      photoURL: profile_picture_url,
+    });
+
+    // Update profile picture URL in database
+    await turso.execute({
+      sql: "UPDATE users SET profile_picture = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+      args: [profile_picture_url, user_id],
+    });
+
+    // Get updated user data
+    const updatedUser = await turso.execute({
+      sql: "SELECT * FROM users WHERE user_id = ?",
+      args: [user_id],
+    });
+
+    if (updatedUser.rows.length === 0) {
+      return res.status(404).json({
+        message: "User not found",
+        code: "USER_NOT_FOUND",
+      });
+    }
+
+    res.status(200).json({
+      message: "Profile picture updated successfully",
+      code: "UPDATE_SUCCESS",
+      user: updatedUser.rows[0],
+    });
+  } catch (err) {
+    const errorCode = err.code || "UNKNOWN_ERROR";
+    const errorMessage = err.message || "An unknown error occurred";
+
+    res.status(500).json({
+      message: errorMessage,
+      code: errorCode,
+    });
+  }
+};
 module.exports = {
   signup,
+  updateProfilePicture,
 };
