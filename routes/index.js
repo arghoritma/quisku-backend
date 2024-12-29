@@ -11,9 +11,9 @@ const { turso } = require("../configs/tursoDatabase");
 const { model } = require("../configs/geminiConfigs");
 
 router.use("/auth", authRoutes);
-router.use("/users", authMiddleware, userRoutes);
+router.use("/user", authMiddleware, userRoutes);
 router.use("/quizz", authMiddleware, quizzRoutes);
-router.use("/scores", authMiddleware, scoreRoutes);
+router.use("/score", authMiddleware, scoreRoutes);
 router.use("/leaderboard", authMiddleware, leaderboardRoutes);
 router.get("/status", (req, res) => {
   res.json({ status: "ok" });

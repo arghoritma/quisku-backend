@@ -103,33 +103,36 @@ const updateProfilePicture = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { profile_picture_url } = req.body;
-  const user_id = req.uid;
+  const { profile_picture } = req.body;
+  const user_id = req.user.uid;
 
   try {
-    // Update profile picture URL in Firebase
-    await auth.updateUser(user_id, {
-      photoURL: profile_picture_url,
-    });
-
-    // Update profile picture URL in database
-    await turso.execute({
-      sql: "UPDATE users SET profile_picture = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
-      args: [profile_picture_url, user_id],
-    });
-
-    // Get updated user data
-    const updatedUser = await turso.execute({
+    // Check if user exists
+    const userExists = await turso.execute({
       sql: "SELECT * FROM users WHERE user_id = ?",
       args: [user_id],
     });
 
-    if (updatedUser.rows.length === 0) {
+    console.log("User query result:", userExists); // Debug log
+
+    if (userExists.rows && userExists.rows.length === 0) {
+      console.log("User ID being checked:", user_id); // Debug log
       return res.status(404).json({
         message: "User not found",
         code: "USER_NOT_FOUND",
       });
     }
+
+    // Update profile picture URL in Firebase
+    await auth.updateUser(user_id, {
+      photoURL: profile_picture,
+    });
+
+    // Update profile picture URL in database
+    const updatedUser = await turso.execute({
+      sql: "UPDATE users SET profile_picture = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+      args: [profile_picture, user_id],
+    });
 
     res.status(200).json({
       message: "Profile picture updated successfully",
@@ -137,6 +140,7 @@ const updateProfilePicture = async (req, res) => {
       user: updatedUser.rows[0],
     });
   } catch (err) {
+    console.log("Error details:", err); // Debug log
     const errorCode = err.code || "UNKNOWN_ERROR";
     const errorMessage = err.message || "An unknown error occurred";
 

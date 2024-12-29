@@ -7,13 +7,14 @@ const {
   updateUser,
   deleteUser,
 } = require("../controllers/usersController");
+const { updateProfilePicture } = require("../controllers/authController");
 
 router.get("/", getAllUsers);
 router.get("/:id", getUserById);
 router.post("/", createUser);
 router.put("/:id", updateUser);
 router.delete("/:id", deleteUser);
-router.put("/profile", updateUser);
+router.post("/avatar", updateProfilePicture);
 
 module.exports = router;
 
