@@ -15,6 +15,8 @@ router.get("/", quizzController.getQuizzes);
 // Get user's quizzes route
 router.get("/user/quizzes", quizzController.getUserQuizzes);
 
+// Get latest quizzes route
+router.get("/latest", quizzController.getLatestQuizzes);
 module.exports = router;
 
 // Documentations

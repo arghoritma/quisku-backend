@@ -4,12 +4,13 @@ const {
   getLeaderboard,
   getSubjectLeaderboard,
   getGradeLeaderboard,
+  getUserStats,
 } = require("../controllers/leaderboardController");
 
 router.get("/", getLeaderboard);
 router.get("/subject/:subject", getSubjectLeaderboard);
 router.get("/grade/:grade", getGradeLeaderboard);
-
+router.get("/user-stats", getUserStats);
 module.exports = router;
 
 // Documentations

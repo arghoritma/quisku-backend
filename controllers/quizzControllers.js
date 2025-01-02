@@ -147,6 +147,27 @@ const quizzController = {
       });
     }
   },
+
+  // Get latest 50 quizzes without filter
+  async getLatestQuizzes(req, res) {
+    try {
+      const result = await turso.execute({
+        sql: "SELECT * FROM quizzes ORDER BY created_at DESC LIMIT 50",
+        args: [],
+      });
+
+      res.json({
+        message: "Latest quizzes retrieved successfully",
+        code: "LATEST_QUIZZES_RETRIEVAL_SUCCESS",
+        data: result.rows,
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: error.message,
+        code: "UNKNOWN_ERROR",
+      });
+    }
+  },
 };
 
 module.exports = quizzController;

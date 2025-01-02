@@ -128,9 +128,41 @@ const getGradeLeaderboard = async (req, res) => {
   }
 };
 
+const getUserStats = async (req, res) => {
+  try {
+    const userStats = await turso.execute(
+      `
+      SELECT 
+        u.user_id,
+        u.username,
+        SUM(uqs.score) as total_score,
+        SUM(uqs.xp_earned) as total_xp,
+        COUNT(DISTINCT uqs.quiz_id) as completed_quizzes
+      FROM users u
+      LEFT JOIN user_quiz_scores uqs ON u.user_id = uqs.user_id
+      WHERE u.user_id = ?
+      GROUP BY u.user_id, u.username
+    `,
+      [req.uid]
+    );
+
+    res.json({
+      message: "User stats retrieved successfully",
+      code: "USER_STATS_RETRIEVAL_SUCCESS",
+      data: userStats.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      code: "UNKNOWN_ERROR",
+    });
+  }
+};
+
 module.exports = {
   getLeaderboard,
   getSubjectLeaderboard,
   getGradeLeaderboard,
   updateLeaderboard,
+  getUserStats,
 };
